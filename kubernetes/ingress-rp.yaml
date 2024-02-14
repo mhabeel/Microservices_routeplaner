@@ -1,0 +1,20 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: routeplaner-ingressroute
+  namespace: bus
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`http://localhost:8080`)
+      middlewares:
+        - name: cors
+          namespace: bus
+      services:
+        - name: routeplaner-app-service
+          namespace: bus
+          port: 80
+  tls:
+    certResolver: default

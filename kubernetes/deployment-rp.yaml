@@ -1,0 +1,26 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: routeplaner-app
+  namespace: bus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: routeplaner-app
+  template:
+    metadata:
+      labels:
+        app: routeplaner-app
+    spec:
+      containers:
+        - name: routeplaner-app
+          image: mhabeel/service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+
+      imagePullSecrets:
+        - name: sec-dockerhub
+

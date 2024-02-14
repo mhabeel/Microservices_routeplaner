@@ -1,0 +1,64 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Java
+      uses: actions/setup-java@v2
+      with:
+        java-version: '17'
+        distribution: 'adopt'
+    - name: Build JAR with Gradle
+      run: |
+       
+       chmod +x gradlew
+       ./gradlew wrapper
+       ./gradlew build -x test
+   
+    - name: Build and push Docker image
+      env:
+        DOCKERHUB_USERNAME: mhabeel
+        DOCKERHUB_TOKEN: dckr_pat_J7vYTs0m-ZQIQyYi19NlED8LyQk
+        DOCKERHUB-REPO: ${{ vars.DOCKERHUB_REPO }}
+        
+      run: |
+        
+        echo $DOCKERHUB_TOKEN | docker login -u $DOCKERHUB_USERNAME --password-stdin
+        docker build -t $DOCKERHUB_USERNAME/service:$GITHUB_SHA -t $DOCKERHUB_USERNAME/service:latest .
+        docker push -a $DOCKERHUB_USERNAME/service
+
+
+  deploy-to-k8s:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2   
+    
+    - name: Deploy to Kubernetes
+      
+      run: |
+        curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube_latest_amd64.deb
+        sudo dpkg -i minikube_latest_amd64.deb
+        minikube start --driver=docker
+        mkdir -p ~/.kube
+        cat k8s_bus.config > ~/.kube/k8s_bus.config
+        export KUBECONFIG=~/.kube/k8s_bus.config
+        kubectl config use-context bus-sa@edu-cluster
+        kubectl get nodes
+        cd kubernetes
+        kubectl apply -f deployment-rp.yaml --validate=false
+        kubectl apply -f service-rp.yaml --validate=false
+        kubectl apply -f ingress-rp.yaml --validate=false
+       
+       
